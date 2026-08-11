@@ -1,0 +1,2 @@
+import { StoreFooter } from "@/components/store/footer"; import { StoreHeader } from "@/components/store/header";
+export default function StoreLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <><a className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-card focus:px-3 focus:py-2" href="#main-content">Skip to content</a><StoreHeader/><main id="main-content">{children}</main><StoreFooter/></>; }

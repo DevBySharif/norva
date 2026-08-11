@@ -1,0 +1,14 @@
+ALTER TABLE "ProductVariant" ADD COLUMN "combinationKey" VARCHAR(1024);
+CREATE TABLE "ProductOption" ("id" TEXT NOT NULL, "productId" TEXT NOT NULL, "name" TEXT NOT NULL, "normalizedName" TEXT NOT NULL, "position" INTEGER NOT NULL DEFAULT 0, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "ProductOption_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "ProductOptionValue" ("id" TEXT NOT NULL, "optionId" TEXT NOT NULL, "value" TEXT NOT NULL, "normalizedValue" TEXT NOT NULL, "position" INTEGER NOT NULL DEFAULT 0, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "ProductOptionValue_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "ProductVariantOptionValue" ("variantId" TEXT NOT NULL, "optionValueId" TEXT NOT NULL, CONSTRAINT "ProductVariantOptionValue_pkey" PRIMARY KEY ("variantId","optionValueId"));
+CREATE INDEX "ProductOption_productId_position_idx" ON "ProductOption"("productId", "position");
+CREATE UNIQUE INDEX "ProductOption_productId_normalizedName_key" ON "ProductOption"("productId", "normalizedName");
+CREATE INDEX "ProductOptionValue_optionId_position_idx" ON "ProductOptionValue"("optionId", "position");
+CREATE UNIQUE INDEX "ProductOptionValue_optionId_normalizedValue_key" ON "ProductOptionValue"("optionId", "normalizedValue");
+CREATE INDEX "ProductVariantOptionValue_optionValueId_idx" ON "ProductVariantOptionValue"("optionValueId");
+CREATE UNIQUE INDEX "ProductVariant_productId_combinationKey_key" ON "ProductVariant"("productId", "combinationKey");
+ALTER TABLE "ProductOption" ADD CONSTRAINT "ProductOption_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ProductOptionValue" ADD CONSTRAINT "ProductOptionValue_optionId_fkey" FOREIGN KEY ("optionId") REFERENCES "ProductOption"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ProductVariantOptionValue" ADD CONSTRAINT "ProductVariantOptionValue_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "ProductVariant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ProductVariantOptionValue" ADD CONSTRAINT "ProductVariantOptionValue_optionValueId_fkey" FOREIGN KEY ("optionValueId") REFERENCES "ProductOptionValue"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
