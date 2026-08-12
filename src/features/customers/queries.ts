@@ -64,7 +64,7 @@ export async function getAccountOverview(userId: string) {
 export function getCustomerProfile(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, email: true, phone: true, role: true, createdAt: true },
+    select: { id: true, name: true, email: true, phone: true, role: true, emailVerifiedAt: true, createdAt: true },
   });
 }
 

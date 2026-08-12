@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db/prisma";
 import type { CheckoutInput } from "@/lib/validations/checkout";
 import { freeShippingDefault, type PublicShippingMethod } from "./constants";
-import { buildOrderNotificationPayload, enqueueOrderNotification, EVENT_BY_STATUS } from "@/features/notifications/outbox";
+import { buildOrderGuestUrl, buildOrderNotificationPayload, enqueueOrderNotification, EVENT_BY_STATUS } from "@/features/notifications/outbox";
 export type { PublicShippingMethod };
 
 type OrderSummaryShape = {
@@ -240,6 +240,7 @@ export async function placeOrderCore(input: CheckoutInput, opts?: { userId?: str
             taxTotal: created.taxTotal,
             grandTotal: created.grandTotal,
             createdAt: created.createdAt,
+            guestUrl: buildOrderGuestUrl({ orderNumber: created.orderNumber, lookupToken: created.lookupToken, userId: created.userId }),
             items: lines.map((line) => ({
               productName: line.variant.product.name,
               sku: line.variant.sku,

@@ -24,12 +24,29 @@ export const authOptions: NextAuthOptions = {
       if (!(await compare(credentials.password, user.passwordHash))) return null;
 
       await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-      return { id: user.id, email: user.email, name: user.name ?? user.email, role: user.role };
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name ?? user.email,
+        role: user.role,
+        passwordChangedAt: user.passwordChangedAt,
+      };
     },
   })],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.role = user.role;
+      if (user) {
+        token.role = user.role;
+        // Sessions minted before a password change carry the old timestamp and are revoked.
+        token.pwdChangedAt = user.passwordChangedAt ? new Date(user.passwordChangedAt).toISOString() : null;
+        return token;
+      }
+      if (token.sub && token.pwdChangedAt) {
+        const current = await prisma.user.findUnique({ where: { id: token.sub as string }, select: { passwordChangedAt: true } });
+        if (current?.passwordChangedAt && new Date(current.passwordChangedAt).getTime() > new Date(token.pwdChangedAt as string).getTime()) {
+          return { ...token, sub: "", name: "", email: "", role: "CUSTOMER", pwdChangedAt: new Date(current.passwordChangedAt).toISOString() };
+        }
+      }
       return token;
     },
     async session({ session, token }) {

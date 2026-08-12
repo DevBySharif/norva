@@ -17,6 +17,9 @@ export type CheckoutFieldErrorKey =
   | "shippingAddress.postalCode"
   | "shippingAddress.country";
 
+import { after } from "next/server";
+import { processPendingNotifications } from "@/features/notifications/outbox";
+
 export async function placeOrder(input: unknown): Promise<PlaceOrderResponse> {
   const parsed = checkoutSchema.safeParse(input);
   if (!parsed.success) {
@@ -35,7 +38,9 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResponse> {
   const session = await getCurrentUser();
   const userId = session?.user && session.user.role === "CUSTOMER" ? session.user.id : undefined;
 
-  return placeOrderCore(parsed.data, { userId, saveAddress: parsed.data.saveAddress === true });
+  const result = await placeOrderCore(parsed.data, { userId, saveAddress: parsed.data.saveAddress === true });
+  after(() => { processPendingNotifications().catch(console.error); });
+  return result;
 }
 
 export async function getShippingMethodsPublic(): Promise<PublicShippingMethod[]> {

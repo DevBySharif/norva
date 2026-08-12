@@ -354,9 +354,9 @@ describe("Notification outbox", () => {
     const pendingBefore = await prisma.notificationOutbox.findMany({ where: { orderId: order.id, status: "PENDING" } });
     expect(pendingBefore.length).toBeGreaterThanOrEqual(2);
 
-    const processed = await processPendingNotifications(100);
+    const processed = await processPendingNotifications({ take: 100 });
     // The sweep is table-wide: it catches this order's rows plus any others left pending.
-    expect(processed).toBeGreaterThanOrEqual(pendingBefore.length);
+    expect(processed.delivered).toBeGreaterThanOrEqual(pendingBefore.length);
 
     const outbox = await prisma.notificationOutbox.findMany({ where: { orderId: order.id } });
     expect(outbox.every((row) => row.status === "SENT")).toBe(true);

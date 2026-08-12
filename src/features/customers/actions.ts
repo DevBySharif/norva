@@ -13,11 +13,42 @@ import {
   updateProfileCore,
   type CustomerServiceResult,
 } from "@/features/customers/service";
+import {
+  deliverVerificationEmail,
+  requestPasswordReset as requestPasswordResetCore,
+  resendVerification as resendVerificationCore,
+  resetPassword as resetPasswordCore,
+  verifyEmail as verifyEmailCore,
+  type AuthActionResult,
+} from "@/features/notifications/email-verification";
 
 export type CustomerActionResult = CustomerServiceResult;
 
 export async function registerCustomer(input: unknown): Promise<CustomerActionResult> {
-  return registerCustomerCore(input);
+  const result = await registerCustomerCore(input);
+  if (result.ok && result.verification) {
+    await deliverVerificationEmail(result.verification);
+  }
+  return result;
+}
+
+export async function verifyEmail(token: string): Promise<AuthActionResult> {
+  return verifyEmailCore(token);
+}
+
+export async function resendVerification(): Promise<AuthActionResult> {
+  const user = await requireCustomer();
+  const result = await resendVerificationCore(user.id);
+  revalidatePath("/account", "page");
+  return result;
+}
+
+export async function requestPasswordReset(email: string): Promise<AuthActionResult> {
+  return requestPasswordResetCore(email);
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<AuthActionResult> {
+  return resetPasswordCore(token, newPassword);
 }
 
 export async function updateProfile(input: unknown): Promise<CustomerActionResult> {

@@ -76,6 +76,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await prisma.auditLog.deleteMany({ where: { entityId: { in: [userAId, userBId] } } });
   await prisma.auditLog.deleteMany({ where: { entityType: "Order", entityId: { in: orderIds } } });
+  await prisma.notificationOutbox.deleteMany({ where: { email: { in: [emailA, emailB, `guest-${runId}@example.test`] } } });
   await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
   await prisma.address.deleteMany({ where: { userId: { in: [userAId, userBId] } } });
   await prisma.user.deleteMany({ where: { id: { in: [userAId, userBId] } } });

@@ -1,5 +1,6 @@
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/db/prisma";
+import { createVerificationTokenAndEnqueue } from "@/features/notifications/auth-tokens";
 import {
   addressSchema,
   claimOrderSchema,
@@ -9,7 +10,7 @@ import {
 } from "@/lib/validations/customer";
 
 export type CustomerServiceResult =
-  | { ok: true }
+  | { ok: true; verification?: { token: string; outboxId: string; email: string; name?: string | null } }
   | { ok: false; code: string; message: string; fieldErrors?: Record<string, string> };
 
 function validationFailure(error: { issues: Array<{ path: PropertyKey[]; message: string }> }): CustomerServiceResult {
@@ -33,13 +34,27 @@ export async function registerCustomerCore(input: unknown): Promise<CustomerServ
   }
 
   const passwordHash = await hash(parsed.data.password, 12);
-  const user = await prisma.user.create({
-    data: { email, name: fullName, phone: phone?.trim() ? phone.trim() : null, role: "CUSTOMER", passwordHash },
+  const result = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        email,
+        name: fullName,
+        phone: phone?.trim() ? phone.trim() : null,
+        role: "CUSTOMER",
+        passwordHash,
+        passwordChangedAt: new Date(),
+      },
+    });
+    await tx.auditLog.create({
+      data: { action: "CUSTOMER_REGISTERED", entityType: "User", entityId: user.id, userId: user.id, metadata: { email } },
+    });
+    const verification = await createVerificationTokenAndEnqueue(tx, { userId: user.id, email: user.email });
+    return { userId: user.id, verification };
   });
-  await prisma.auditLog.create({
-    data: { action: "CUSTOMER_REGISTERED", entityType: "User", entityId: user.id, userId: user.id, metadata: { email } },
-  });
-  return { ok: true };
+  return {
+    ok: true,
+    verification: { token: result.verification.rawToken, outboxId: result.verification.outboxId, email, name: fullName },
+  };
 }
 
 export async function updateProfileCore(userId: string, input: unknown): Promise<CustomerServiceResult> {

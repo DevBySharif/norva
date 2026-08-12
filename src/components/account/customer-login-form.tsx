@@ -18,9 +18,11 @@ export function CustomerLoginForm({ defaultCallbackUrl }: { defaultCallbackUrl: 
     setPending(false);
 
     if (!result?.ok) {
+      console.error("SIGN IN FAILED", result);
       setError("Invalid email or password. Please try again.");
       return;
     }
+    console.log("SIGN IN SUCCESS, redirecting to", defaultCallbackUrl);
     // Hard navigation so the session cookie is applied by the server on the next request.
     window.location.assign(defaultCallbackUrl);
   }
@@ -55,6 +57,11 @@ export function CustomerLoginForm({ defaultCallbackUrl }: { defaultCallbackUrl: 
           New here?{" "}
           <Link href="/register" className="font-semibold text-[#D57959] hover:underline">
             Create an account
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          <Link href="/forgot-password" className="font-semibold text-[#D57959] hover:underline">
+            Forgot your password?
           </Link>
         </p>
       </div>

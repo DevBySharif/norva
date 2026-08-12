@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import type { OrderStatus } from "@prisma/client";
 import { requireOrderManager } from "@/lib/auth/session";
 import { markPaymentReceivedCore, transitionOrderStatusCore, type OrderMutationResult } from "./order-lifecycle";
+import { processPendingNotifications } from "@/features/notifications/outbox";
+import { after } from "next/server";
 
 export type OrderActionResult = OrderMutationResult | { ok: false; code: "validation"; message: string };
 
@@ -29,6 +31,8 @@ export async function updateOrderStatus(input: unknown): Promise<OrderActionResu
     note: note ?? null,
     internalNote: internalNote ?? null,
   });
+
+  after(() => { processPendingNotifications().catch(console.error); });
 
   revalidatePath("/admin/orders", "page");
   revalidatePath(`/admin/orders/${orderId}`, "page");

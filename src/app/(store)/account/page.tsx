@@ -6,6 +6,7 @@ import { orderStatusLabel } from "@/features/orders/constants";
 import { formatCurrency } from "@/lib/utils";
 import { AccountNav } from "@/components/account/account-nav";
 import { SignOutButton } from "@/components/account/sign-out-button";
+import { VerificationBanner } from "@/components/account/verification-banner";
 
 export const metadata: Metadata = { title: "My account" };
 
@@ -25,6 +26,8 @@ export default async function AccountPage() {
         </div>
         <SignOutButton />
       </div>
+
+      {profile && !profile.emailVerifiedAt && <VerificationBanner email={profile.email} />}
 
       <div className="mt-8">
         <AccountNav />
