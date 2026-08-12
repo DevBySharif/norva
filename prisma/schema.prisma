@@ -431,12 +431,28 @@ model ShippingMethod {
 }
 
 model Coupon {
-  id       String        @id @default(cuid())
-  code     String        @unique
-  type     CouponType
-  value    Decimal       @db.Decimal(12, 2)
-  isActive Boolean       @default(true)
-  usages   CouponUsage[]
+  id              String        @id @default(cuid())
+  code            String        @unique
+  type            CouponType
+  value           Decimal       @db.Decimal(12, 2)
+  isActive        Boolean       @default(true)
+  startsAt        DateTime?
+  expiresAt       DateTime?
+  minimumSubtotal Decimal?      @db.Decimal(12, 2)
+  usageLimit      Int?
+  usageCount      Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  usages          CouponUsage[]
+}
+
+model StoreSettings {
+  id                    String   @id @default("default")
+  storeName             String   @default("Norva")
+  currency              String   @default("USD")
+  freeShippingThreshold Decimal? @db.Decimal(12, 2)
+  supportEmail          String?
+  updatedAt             DateTime @updatedAt
 }
 
 model CouponUsage {

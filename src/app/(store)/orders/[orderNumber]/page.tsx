@@ -83,6 +83,9 @@ export default async function GuestOrderDetailPage({
         </ul>
         <div className="mt-4 space-y-2 border-t border-[#e0d9cc] pt-4 text-sm">
           <div className="flex justify-between"><span className="text-gray-600">Subtotal</span><span className="font-medium">{formatCurrency(Number(order.subtotal))}</span></div>
+          {Number(order.discountTotal) > 0 && (
+            <div className="flex justify-between text-green-700"><span>Discount</span><span className="font-medium">-{formatCurrency(Number(order.discountTotal))}</span></div>
+          )}
           <div className="flex justify-between"><span className="text-gray-600">Shipping</span><span className="font-medium">{Number(order.shippingTotal) === 0 ? "Free" : formatCurrency(Number(order.shippingTotal))}</span></div>
           <div className="flex justify-between"><span className="text-gray-600">Tax</span><span className="font-medium">{formatCurrency(Number(order.taxTotal))}</span></div>
           <div className="flex justify-between pt-2 border-t border-[#e0d9cc] text-base"><span className="font-semibold">Total</span><span className="font-bold">{formatCurrency(Number(order.grandTotal))}</span></div>

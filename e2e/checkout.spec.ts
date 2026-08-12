@@ -215,7 +215,7 @@ test.describe("Checkout & Order Creation", () => {
     await page.getByRole("link", { name: "Proceed to checkout" }).click();
     await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
     await fillContact();
-    await expect(page.getByTestId("checkout-total")).toContainText("$55.00");
+    await expect(page.getByTestId("checkout-total")).toContainText("$65.00");
 
     const ref = await placeAndGetReference();
     await expect(page.getByRole("heading", { name: "Order confirmed" })).toBeVisible();
@@ -224,13 +224,13 @@ test.describe("Checkout & Order Creation", () => {
     expect(order).toBeTruthy();
     expect(order!.status).toBe("PENDING");
     expect(Number(order!.subtotal)).toBe(55);
-    expect(Number(order!.shippingTotal)).toBe(0);
+    expect(Number(order!.shippingTotal)).toBe(10);
     expect(Number(order!.taxTotal)).toBe(0);
-    expect(Number(order!.grandTotal)).toBe(55);
+    expect(Number(order!.grandTotal)).toBe(65);
     expect(order!.currency).toBe("USD");
     expect(order?.payments?.[0]?.provider).toBe("COD");
     expect(order?.payments?.[0]?.status).toBe("PENDING");
-    expect(Number(order!.payments?.[0]?.amount)).toBe(55);
+    expect(Number(order!.payments?.[0]?.amount)).toBe(65);
     expect(order!.items).toHaveLength(1);
     expect(order!.items[0]?.productName).toBe("Checkout Test Simple");
     expect(order!.items[0]?.variantName).toBe("Default Variant");
@@ -280,7 +280,7 @@ test.describe("Checkout & Order Creation", () => {
     expect(order!.items[0]?.productId).toBe(multi.id);
     expect(Number(order!.items[0]?.unitPrice)).toBe(65);
     expect(Number(order!.items[0]?.lineTotal)).toBe(65);
-    expect(Number(order!.grandTotal)).toBe(65);
+    expect(Number(order!.grandTotal)).toBe(75);
   });
 
   test("C35: multiple lines with quantities are preserved exactly", async () => {
@@ -327,10 +327,10 @@ test.describe("Checkout & Order Creation", () => {
     const order = await prisma.order.findUnique({ where: { orderNumber: ref }, include: { items: true } });
     expect(Number(order!.items[0]?.unitPrice)).toBe(99);
     expect(Number(order!.items[0]?.lineTotal)).toBe(99);
-    expect(Number(order!.grandTotal)).toBe(99);
+    expect(Number(order!.grandTotal)).toBe(109);
 
-    // Confirmation page reflects the authoritative server total.
-    await expect(page.getByText("$99.00", { exact: true }).last()).toBeVisible();
+    // Confirmation page reflects the authoritative server total (99 + 10 shipping).
+    await expect(page.getByText("$109.00", { exact: true }).last()).toBeVisible();
   });
 
   test("C37: insufficient stock is rejected with no order and no reservation", async () => {
@@ -406,7 +406,7 @@ test.describe("Checkout & Order Creation", () => {
     const orders = await prisma.orderItem.findMany({ where: { sku: "CK-DBL-01" }, select: { orderId: true } });
     expect(orders).toHaveLength(1);
     const order = await prisma.order.findUnique({ where: { id: orders[0]!.orderId } });
-    expect(Number(order!.grandTotal)).toBe(45);
+    expect(Number(order!.grandTotal)).toBe(55);
   });
 
   test("C40: invalid customer details show friendly inline errors and create no order", async () => {

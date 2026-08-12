@@ -8,6 +8,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useHydratedCart, type HydratedCartItem } from "@/hooks/use-hydrated-cart";
 import { formatCurrency } from "@/lib/utils";
 import { placeOrder, getShippingMethodsPublic } from "@/features/orders/actions";
+import { previewCheckoutTotals } from "@/features/coupons/actions";
 import { getCheckoutPrefill } from "@/features/customers/actions";
 import { freeShippingDefault, type PublicShippingMethod } from "@/features/orders/constants";
 
@@ -39,6 +40,12 @@ export default function CheckoutPage() {
   const [shippingMethods, setShippingMethods] = useState<PublicShippingMethod[]>([]);
   const [shippingCode, setShippingCode] = useState<string>(freeShippingDefault.code);
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "ONLINE">("COD");
+  
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [dynamicTotals, setDynamicTotals] = useState<{ subtotal: string, shippingTotal: string, discountTotal: string, grandTotal: string } | null>(null);
 
   const idempotencyKey = useMemo(() => crypto.randomUUID(), []);
 
@@ -83,9 +90,41 @@ export default function CheckoutPage() {
     return acc + effectivePrice * item.quantity;
   }, 0);
 
+  useEffect(() => {
+    if (!isHydrated || !hydratedItems || hydratedItems.length === 0) return;
+    previewCheckoutTotals(subtotal.toString(), appliedCoupon || undefined).then(res => {
+      setDynamicTotals(res);
+      if (res.couponError && appliedCoupon) {
+        setCouponError(res.couponError);
+        setAppliedCoupon(null);
+      }
+    });
+  }, [subtotal, appliedCoupon, isHydrated, hydratedItems]);
+
   const selectedMethod = shippingMethods.find((m) => m.code === shippingCode) ?? (shippingCode === freeShippingDefault.code ? freeShippingDefault : null);
-  const shippingTotal = selectedMethod ? Number(selectedMethod.price) : 0;
-  const grandTotal = subtotal + shippingTotal;
+  const shippingTotal = dynamicTotals ? Number(dynamicTotals.shippingTotal) : (selectedMethod ? Number(selectedMethod.price) : 0);
+  const discountTotal = dynamicTotals ? Number(dynamicTotals.discountTotal) : 0;
+  const grandTotal = dynamicTotals ? Number(dynamicTotals.grandTotal) : subtotal + shippingTotal;
+
+  async function handleApplyCoupon() {
+    setIsApplyingCoupon(true);
+    setCouponError(null);
+    const res = await previewCheckoutTotals(subtotal.toString(), couponInput);
+    if (res.couponError) {
+      setCouponError(res.couponError);
+      setAppliedCoupon(null);
+    } else if (res.validCoupon) {
+      setAppliedCoupon(res.validCoupon.code);
+      setCouponInput("");
+    }
+    setDynamicTotals(res);
+    setIsApplyingCoupon(false);
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponError(null);
+  }
 
   const canPlaceOrder = !isPlacing && !isRefreshing && isHydrated && hydratedItems !== null && hydratedItems.length > 0 && !hasUnavailable;
 
@@ -109,6 +148,7 @@ export default function CheckoutPage() {
         country: form.country,
       },
       shippingMethodCode: shippingCode === freeShippingDefault.code ? undefined : shippingCode,
+      couponCode: appliedCoupon || undefined,
       paymentMethod,
       idempotencyKey,
       saveAddress,
@@ -326,13 +366,56 @@ export default function CheckoutPage() {
           </ul>
 
           <dl className="mt-4 space-y-3 border-t border-[#d8d0c3] pt-4 text-sm">
-            <div className="flex justify-between">
+            
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold">Discount code</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value)}
+                  placeholder="Enter coupon code"
+                  disabled={isApplyingCoupon || !!appliedCoupon}
+                  className="block w-full rounded-md border border-[#d8d0c3] px-3 py-2 text-sm shadow-sm focus:border-[#D57959] focus:outline-none"
+                />
+                {!appliedCoupon ? (
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={!couponInput || isApplyingCoupon}
+                    className="shrink-0 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-800 disabled:opacity-50"
+                  >
+                    Apply
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="shrink-0 rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-700 shadow-sm hover:bg-red-200"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              {couponError && <p className="text-xs text-red-600 mt-1">{couponError}</p>}
+              {appliedCoupon && <p className="text-xs text-green-700 mt-1">Coupon {appliedCoupon} applied!</p>}
+            </div>
+
+            <div className="flex justify-between border-t border-[#d8d0c3] pt-3">
               <dt className="text-gray-600">Subtotal</dt>
               <dd className="font-medium">{formatCurrency(subtotal)}</dd>
             </div>
+            
+            {discountTotal > 0 && (
+              <div className="flex justify-between text-green-700">
+                <dt>Discount {appliedCoupon ? `(${appliedCoupon})` : ""}</dt>
+                <dd className="font-medium">-{formatCurrency(discountTotal)}</dd>
+              </div>
+            )}
+
             <div className="flex justify-between">
               <dt className="text-gray-600">Shipping</dt>
-              <dd className="font-medium">{formatCurrency(shippingTotal)}</dd>
+              <dd className="font-medium">{shippingTotal === 0 ? "Free" : formatCurrency(shippingTotal)}</dd>
             </div>
             <div className="flex justify-between text-base font-semibold border-t border-[#d8d0c3] pt-3">
               <dt>Total</dt>

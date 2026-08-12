@@ -38,7 +38,7 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResponse> {
   const session = await getCurrentUser();
   const userId = session?.user && session.user.role === "CUSTOMER" ? session.user.id : undefined;
 
-  const result = await placeOrderCore({ items: parsed.data.items, customer: parsed.data.customer, shippingAddress: parsed.data.shippingAddress, shippingMethodCode: parsed.data.shippingMethodCode, paymentMethod: parsed.data.paymentMethod, idempotencyKey: parsed.data.idempotencyKey, saveAddress: parsed.data.saveAddress }, { userId, saveAddress: parsed.data.saveAddress === true });
+  const result = await placeOrderCore({ items: parsed.data.items, customer: parsed.data.customer, shippingAddress: parsed.data.shippingAddress, shippingMethodCode: parsed.data.shippingMethodCode, couponCode: parsed.data.couponCode, paymentMethod: parsed.data.paymentMethod, idempotencyKey: parsed.data.idempotencyKey, saveAddress: parsed.data.saveAddress }, { userId, saveAddress: parsed.data.saveAddress === true });
   after(() => { processPendingNotifications().catch(console.error); });
   return result;
 }

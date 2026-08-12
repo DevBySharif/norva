@@ -2,10 +2,10 @@ import { Prisma, ProductStatus } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db/prisma";
 import type { CheckoutInput } from "@/lib/validations/checkout";
-import { freeShippingDefault, type PublicShippingMethod } from "./constants";
+import { type PublicShippingMethod } from "./constants";
 import { buildOrderGuestUrl, buildOrderNotificationPayload, enqueueOrderNotification, EVENT_BY_STATUS } from "@/features/notifications/outbox";
 import { getPaymentProvider } from "@/features/payments";
-import { PaymentInitializationResult } from "@/features/payments/types";
+import { getStoreSettings } from "@/features/store/settings";
 export type { PublicShippingMethod };
 
 type OrderSummaryShape = {
@@ -131,14 +131,7 @@ export async function placeOrderCore(input: CheckoutInput, opts?: { userId?: str
         const existingInTxn = await tx.order.findUnique({ where: { idempotencyKey: input.idempotencyKey }, select: ORDER_SUMMARY_SELECT });
         if (existingInTxn) return { kind: "replay", order: existingInTxn };
 
-        const shippingIsFree = !input.shippingMethodCode || input.shippingMethodCode === freeShippingDefault.code;
-        let shippingTotal = new Prisma.Decimal(0);
-        if (!shippingIsFree) {
-          const method = await tx.shippingMethod.findFirst({ where: { code: input.shippingMethodCode, isActive: true }, select: { price: true } });
-          if (!method) return { kind: "invalid_shipping" };
-          shippingTotal = new Prisma.Decimal(method.price);
-        }
-
+        // Calculate subtotal first to evaluate free shipping threshold
         const variants = await tx.productVariant.findMany({
           where: { id: { in: variantIds }, isActive: true, product: { status: ProductStatus.ACTIVE, deletedAt: null } },
           select: {
@@ -176,7 +169,50 @@ export async function placeOrderCore(input: CheckoutInput, opts?: { userId?: str
 
         let subtotal = new Prisma.Decimal(0);
         for (const line of lines) subtotal = subtotal.add(line.lineTotal);
-        const grandTotal = subtotal.add(shippingTotal);
+
+        // Fetch Store Settings & calculate Shipping
+        const storeSettings = await getStoreSettings();
+        let shippingTotal = new Prisma.Decimal(0);
+        
+        const standardMethod = await tx.shippingMethod.findFirst({ where: { isActive: true }, orderBy: { price: 'asc' } });
+        
+        if (storeSettings.freeShippingThreshold && subtotal.gte(storeSettings.freeShippingThreshold)) {
+          shippingTotal = new Prisma.Decimal(0);
+        } else if (standardMethod) {
+          shippingTotal = standardMethod.price;
+        } else if (!standardMethod && input.shippingMethodCode) {
+           return { kind: "invalid_shipping" };
+        }
+
+        // Validate Coupon & Calculate Discount
+        let discountTotal = new Prisma.Decimal(0);
+        let appliedCouponId: string | null = null;
+        
+        if (input.couponCode) {
+          const normalizedCode = input.couponCode.trim().toUpperCase();
+          const coupon = await tx.coupon.findUnique({ where: { code: normalizedCode } });
+          if (coupon && coupon.isActive) {
+            const now = new Date();
+            const validTiming = (!coupon.startsAt || now >= coupon.startsAt) && (!coupon.expiresAt || now <= coupon.expiresAt);
+            const validLimit = coupon.usageLimit === null || coupon.usageCount < coupon.usageLimit;
+            const validSubtotal = coupon.minimumSubtotal === null || subtotal.gte(coupon.minimumSubtotal);
+            
+            if (validTiming && validLimit && validSubtotal) {
+              appliedCouponId = coupon.id;
+              
+              if (coupon.type === "PERCENTAGE") {
+                let p = coupon.value;
+                if (p.lt(0)) p = new Prisma.Decimal(0);
+                if (p.gt(100)) p = new Prisma.Decimal(100);
+                discountTotal = subtotal.mul(p).div(100);
+              } else if (coupon.type === "FIXED_AMOUNT") {
+                discountTotal = coupon.value.gt(subtotal) ? subtotal : coupon.value;
+              }
+            }
+          }
+        }
+
+        const grandTotal = subtotal.sub(discountTotal).add(shippingTotal);
 
         const created = await tx.order.create({
           data: {
@@ -188,6 +224,7 @@ export async function placeOrderCore(input: CheckoutInput, opts?: { userId?: str
             status: "PENDING",
             subtotal,
             shippingTotal,
+            discountTotal,
             taxTotal: new Prisma.Decimal(0),
             grandTotal,
             currency: "USD",
@@ -223,8 +260,28 @@ export async function placeOrderCore(input: CheckoutInput, opts?: { userId?: str
                 },
               ],
             },
+            ...(appliedCouponId && {
+              couponUsage: {
+                create: {
+                  couponId: appliedCouponId,
+                  userId: opts?.userId ?? null,
+                }
+              }
+            })
           },
         });
+
+        // Apply Coupon Usage Count Increment transactionally
+        if (appliedCouponId) {
+          const updatedCoupon = await tx.coupon.update({
+            where: { id: appliedCouponId },
+            data: { usageCount: { increment: 1 } },
+          });
+          
+          if (updatedCoupon.usageLimit !== null && updatedCoupon.usageCount > updatedCoupon.usageLimit) {
+            throw new Prisma.PrismaClientKnownRequestError("Usage limit exceeded in transaction", { code: "P2002", clientVersion: "latest" });
+          }
+        }
 
         // Reserve stock. The Serializable transaction prevents two concurrent orders from both
         // reserving the last unit (the read-write conflict aborts one with P2034), and updateMany
