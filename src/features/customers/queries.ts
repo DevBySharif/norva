@@ -26,7 +26,7 @@ export const CUSTOMER_ORDER_DETAIL_SELECT = {
   email: true,
   createdAt: true,
   shippingAddress: true,
-  payment: { select: { provider: true, status: true } },
+  payments: { select: { provider: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 },
   items: {
     select: { productName: true, variantName: true, sku: true, unitPrice: true, quantity: true, lineTotal: true },
     orderBy: { id: "asc" },

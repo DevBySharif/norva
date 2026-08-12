@@ -40,8 +40,8 @@ export default async function OrderSuccessPage({ params }: { params: Promise<{ o
       <div className="grid gap-6 sm:grid-cols-2 mb-8">
         <div className="rounded-2xl border border-[#d8d0c3] bg-[#F0EEE6]/40 p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Payment</h2>
-          <p className="mt-2 font-medium">{order.payment?.provider ?? "Cash on Delivery"}</p>
-          <p className="text-sm text-gray-600">Status: {order.payment?.status ?? "PENDING"}</p>
+          <p className="mt-2 font-medium">{order.payments?.[0]?.provider ?? "Cash on Delivery"}</p>
+          <p className="text-sm text-gray-600">Status: {order.payments?.[0]?.status ?? "PENDING"}</p>
         </div>
         <div className="rounded-2xl border border-[#d8d0c3] bg-[#F0EEE6]/40 p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Ship to</h2>

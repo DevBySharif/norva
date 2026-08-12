@@ -10,7 +10,7 @@ const adminOrderListSelect = {
   grandTotal: true,
   currency: true,
   createdAt: true,
-  payment: { select: { provider: true, status: true } },
+  payments: { select: { provider: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 },
   items: { select: { id: true } },
 } satisfies Prisma.OrderSelect;
 
@@ -25,7 +25,7 @@ export type AdminOrderFilters = {
 export async function getAdminOrders(filters: AdminOrderFilters = {}) {
   const where: Prisma.OrderWhereInput = {};
   if (filters.status && filters.status !== "ALL") where.status = filters.status;
-  if (filters.paymentStatus && filters.paymentStatus !== "ALL") where.payment = { status: filters.paymentStatus };
+  if (filters.paymentStatus && filters.paymentStatus !== "ALL") where.payments = { some: { status: filters.paymentStatus } };
   if (filters.search?.trim()) {
     where.OR = [
       { orderNumber: { contains: filters.search.trim(), mode: "insensitive" } },
@@ -68,7 +68,7 @@ export async function getAdminOrderById(id: string) {
       createdAt: true,
       shippingAddress: true,
       userId: true,
-      payment: { select: { provider: true, status: true, amount: true } },
+      payments: { select: { provider: true, status: true, amount: true }, orderBy: { createdAt: "desc" }, take: 1 },
       items: {
         select: {
           id: true,

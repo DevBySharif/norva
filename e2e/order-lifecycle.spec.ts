@@ -141,11 +141,11 @@ test.describe("Order lifecycle (admin fulfillment)", () => {
     await expect(page).toHaveURL(/\/orders\/.+\?access=/);
     await expect(page.getByTestId("guest-status")).toHaveText("Order placed");
 
-    const order = await prisma.order.findUnique({ where: { orderNumber: ref }, include: { items: true, payment: true } });
+    const order = await prisma.order.findUnique({ where: { orderNumber: ref }, include: { items: true, payments: { orderBy: { createdAt: "desc" }, take: 1 } } });
     expect(order!.lookupToken).toBeTruthy();
     expect(order!.items[0]?.productName).toBe(productName);
     expect(Number(order!.items[0]?.unitPrice)).toBe(75);
-    expect(order!.payment?.status).toBe("PENDING");
+    expect(order!.payments?.[0]?.status).toBe("PENDING");
 
     // Admin: CONFIRMED with both a customer note and a staff-only internal note.
     await advance(ref, "CONFIRMED", { note: "Thank you for shopping with us", internalNote: "Priority handling" });
@@ -171,8 +171,8 @@ test.describe("Order lifecycle (admin fulfillment)", () => {
     await adminDetail(ref);
     await page.getByTestId("payment-mark-received").click();
     await expect(page.getByTestId("order-action-message")).toContainText("Payment received", { timeout: 15_000 });
-    const paidOrder = await prisma.order.findUnique({ where: { orderNumber: ref }, select: { payment: true } });
-    expect(paidOrder!.payment?.status).toBe("PAID");
+    const paidOrder = await prisma.order.findUnique({ where: { orderNumber: ref }, include: { payments: { orderBy: { createdAt: "desc" }, take: 1 } } });
+    expect(paidOrder!.payments?.[0]?.status).toBe("PAID");
 
     await advance(ref, "SHIPPED", { note: "Left the warehouse" });
     const shippedOrder = await prisma.order.findUnique({ where: { orderNumber: ref } });

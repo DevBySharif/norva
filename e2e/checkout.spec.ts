@@ -220,7 +220,7 @@ test.describe("Checkout & Order Creation", () => {
     const ref = await placeAndGetReference();
     await expect(page.getByRole("heading", { name: "Order confirmed" })).toBeVisible();
 
-    const order = await prisma.order.findUnique({ where: { orderNumber: ref }, include: { items: true, payment: true, statusHistory: true } });
+    const order = await prisma.order.findUnique({ where: { orderNumber: ref }, include: { items: true, payments: { orderBy: { createdAt: "desc" }, take: 1 }, statusHistory: true } });
     expect(order).toBeTruthy();
     expect(order!.status).toBe("PENDING");
     expect(Number(order!.subtotal)).toBe(55);
@@ -228,9 +228,9 @@ test.describe("Checkout & Order Creation", () => {
     expect(Number(order!.taxTotal)).toBe(0);
     expect(Number(order!.grandTotal)).toBe(55);
     expect(order!.currency).toBe("USD");
-    expect(order!.payment?.provider).toBe("COD");
-    expect(order!.payment?.status).toBe("PENDING");
-    expect(Number(order!.payment?.amount)).toBe(55);
+    expect(order?.payments?.[0]?.provider).toBe("COD");
+    expect(order?.payments?.[0]?.status).toBe("PENDING");
+    expect(Number(order!.payments?.[0]?.amount)).toBe(55);
     expect(order!.items).toHaveLength(1);
     expect(order!.items[0]?.productName).toBe("Checkout Test Simple");
     expect(order!.items[0]?.variantName).toBe("Default Variant");

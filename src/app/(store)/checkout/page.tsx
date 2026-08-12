@@ -38,6 +38,7 @@ export default function CheckoutPage() {
   const [saveAddress, setSaveAddress] = useState(false);
   const [shippingMethods, setShippingMethods] = useState<PublicShippingMethod[]>([]);
   const [shippingCode, setShippingCode] = useState<string>(freeShippingDefault.code);
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "ONLINE">("COD");
 
   const idempotencyKey = useMemo(() => crypto.randomUUID(), []);
 
@@ -108,6 +109,7 @@ export default function CheckoutPage() {
         country: form.country,
       },
       shippingMethodCode: shippingCode === freeShippingDefault.code ? undefined : shippingCode,
+      paymentMethod,
       idempotencyKey,
       saveAddress,
     });
@@ -116,7 +118,11 @@ export default function CheckoutPage() {
 
     if (response.ok) {
       clearCart();
-      router.push(`/order-success/${response.orderNumber}`);
+      if (response.paymentRedirectUrl) {
+        window.location.href = response.paymentRedirectUrl;
+      } else {
+        router.push(`/order-success/${response.orderNumber}`);
+      }
       return;
     }
 
@@ -167,7 +173,6 @@ export default function CheckoutPage() {
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <div className="flex items-baseline justify-between">
         <h1 className="text-3xl font-semibold">Checkout</h1>
-        <p className="text-sm text-muted-foreground">Cash on Delivery</p>
       </div>
 
       {hasUnavailable && (
@@ -270,6 +275,30 @@ export default function CheckoutPage() {
               ))}
             </div>
           </section>
+
+          <section aria-labelledby="payment-method-heading" className="rounded-2xl border border-[#d8d0c3] bg-[#F0EEE6]/40 p-6">
+            <h2 id="payment-method-heading" className="text-lg font-semibold">Payment method</h2>
+            <div className="mt-4 space-y-2">
+              <label className={`flex items-center justify-between rounded-lg border px-4 py-3 ${paymentMethod === "ONLINE" ? "border-[#D57959]" : "border-[#d8d0c3]"}`}>
+                <span className="flex items-center gap-3">
+                  <input type="radio" name="paymentMethod" value="ONLINE" checked={paymentMethod === "ONLINE"} onChange={() => setPaymentMethod("ONLINE")} />
+                  <span>
+                    <span className="block text-sm font-medium">Pay securely online</span>
+                    <span className="block text-xs text-muted-foreground">Cards, Mobile Banking, Internet Banking</span>
+                  </span>
+                </span>
+              </label>
+              <label className={`flex items-center justify-between rounded-lg border px-4 py-3 ${paymentMethod === "COD" ? "border-[#D57959]" : "border-[#d8d0c3]"}`}>
+                <span className="flex items-center gap-3">
+                  <input type="radio" name="paymentMethod" value="COD" checked={paymentMethod === "COD"} onChange={() => setPaymentMethod("COD")} />
+                  <span>
+                    <span className="block text-sm font-medium">Cash on Delivery</span>
+                    <span className="block text-xs text-muted-foreground">Pay with cash when your order is delivered.</span>
+                  </span>
+                </span>
+              </label>
+            </div>
+          </section>
         </div>
 
         <aside aria-label="Order summary" className="h-fit rounded-2xl border border-[#d8d0c3] bg-[#F0EEE6]/50 p-6 lg:sticky lg:top-6">
@@ -317,9 +346,11 @@ export default function CheckoutPage() {
             data-testid="place-order"
             className="mt-6 h-12 w-full rounded-lg bg-[#D57959] text-white font-medium transition-colors hover:bg-[#c26d50] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isPlacing ? "Placing order…" : hasUnavailable ? "Review cart to continue" : "Place order"}
+            {isPlacing ? "Processing…" : hasUnavailable ? "Review cart to continue" : paymentMethod === "ONLINE" ? "Proceed to Payment" : "Place order"}
           </button>
-          <p className="mt-3 text-center text-xs text-gray-500">By placing your order you agree to pay {formatCurrency(grandTotal)} on delivery.</p>
+          <p className="mt-3 text-center text-xs text-gray-500">
+            {paymentMethod === "COD" ? `By placing your order you agree to pay ${formatCurrency(grandTotal)} on delivery.` : "You will be redirected to our secure payment gateway."}
+          </p>
         </aside>
       </form>
     </main>

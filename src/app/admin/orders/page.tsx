@@ -127,7 +127,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
                       <td className="px-4 py-3">{order.items.length}</td>
                       <td className="px-4 py-3 font-medium">{formatCurrency(Number(order.grandTotal))}</td>
                       <td className="px-4 py-3">
-                        {order.payment?.provider ?? "—"} · {order.payment?.status ?? "—"}
+                        {order.payments?.[0]?.provider ?? "—"} · {order.payments?.[0]?.status ?? "—"}
                       </td>
                       <td className="px-4 py-3">
                         <span data-testid={`order-row-status-${order.id}`} className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">

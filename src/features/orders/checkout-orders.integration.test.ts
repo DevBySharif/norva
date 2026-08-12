@@ -21,6 +21,7 @@ function baseInput(overrides: { idempotencyKey: string; quantity?: number }): Ch
     items: [{ variantId, quantity: overrides.quantity ?? 1 }],
     customer: { fullName: "Concurrency Tester", email, phone: "+1 555 010 0000" },
     shippingAddress: { line1: "1 Concurrent Way", line2: "", city: "Test City", state: "TS", postalCode: "00000", country: "Testland" },
+    paymentMethod: "COD",
     shippingMethodCode: undefined,
     idempotencyKey: overrides.idempotencyKey,
   };
@@ -143,13 +144,13 @@ describe("Order placement idempotency", () => {
     const inventory = await prisma.inventory.findUnique({ where: { id: inventoryId } });
     expect(Number(inventory?.reservedQuantity)).toBe(3);
 
-    const order = await prisma.order.findUnique({ where: { id: first.orderId }, include: { items: true, payment: true } });
+    const order = await prisma.order.findUnique({ where: { id: first.orderId }, include: { items: true, payments: { orderBy: { createdAt: "desc" }, take: 1 } } });
     expect(order?.items).toHaveLength(1);
     expect(order?.items[0]?.quantity).toBe(2);
     expect(Number(order?.items[0]?.unitPrice)).toBe(50);
     expect(Number(order?.items[0]?.lineTotal)).toBe(100);
     expect(Number(order?.subtotal)).toBe(100);
     expect(Number(order?.grandTotal)).toBe(100);
-    expect(order?.payment?.provider).toBe("COD");
+    expect(order?.payments?.[0]?.provider).toBe("COD");
   });
 });

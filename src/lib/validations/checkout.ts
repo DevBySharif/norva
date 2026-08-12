@@ -32,6 +32,7 @@ export const checkoutSchema = z.object({
   shippingMethodCode: z.string().trim().max(80).optional(),
   idempotencyKey: z.string().trim().min(8, "A valid submission token is required.").max(120),
   saveAddress: z.boolean().optional(),
+  paymentMethod: z.enum(["COD", "ONLINE"]).default("COD"),
 });
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;

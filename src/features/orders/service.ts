@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db/prisma";
 import type { CheckoutInput } from "@/lib/validations/checkout";
 import { freeShippingDefault, type PublicShippingMethod } from "./constants";
 import { buildOrderGuestUrl, buildOrderNotificationPayload, enqueueOrderNotification, EVENT_BY_STATUS } from "@/features/notifications/outbox";
+import { getPaymentProvider } from "@/features/payments";
+import { PaymentInitializationResult } from "@/features/payments/types";
 export type { PublicShippingMethod };
 
 type OrderSummaryShape = {
@@ -13,7 +15,9 @@ type OrderSummaryShape = {
   subtotal: Prisma.Decimal;
   shippingTotal: Prisma.Decimal;
   grandTotal: Prisma.Decimal;
-  payment: { status: string } | null;
+  payments: Array<{ id: string, status: string, provider: string }> | null;
+  lookupToken: string | null;
+  userId: string | null;
 };
 
 type TxnOutcome =
@@ -33,8 +37,9 @@ export type OrderPlacementResult =
       shippingTotal: string;
       grandTotal: string;
       replayed?: boolean;
+      paymentRedirectUrl?: string;
     }
-  | { ok: false; code: "validation" | "empty_cart" | "unavailable" | "out_of_stock" | "invalid_shipping" | "conflict"; message: string; failedVariantIds?: string[] };
+  | { ok: false; code: "validation" | "empty_cart" | "unavailable" | "out_of_stock" | "invalid_shipping" | "conflict" | "payment_init_failed"; message: string; failedVariantIds?: string[] };
 
 const ORDER_SUMMARY_SELECT = {
   id: true,
@@ -46,7 +51,9 @@ const ORDER_SUMMARY_SELECT = {
   discountTotal: true,
   grandTotal: true,
   currency: true,
-  payment: { select: { status: true } },
+  lookupToken: true,
+  userId: true,
+  payments: { select: { id: true, status: true, provider: true }, orderBy: { createdAt: 'desc' }, take: 1 },
 } satisfies Prisma.OrderSelect;
 
 const PUBLIC_ORDER_SELECT = {
@@ -62,7 +69,7 @@ const PUBLIC_ORDER_SELECT = {
   email: true,
   createdAt: true,
   shippingAddress: true,
-  payment: { select: { provider: true, status: true } },
+  payments: { select: { provider: true, status: true }, orderBy: { createdAt: 'desc' }, take: 1 },
   items: {
     select: {
       productName: true,
@@ -97,7 +104,7 @@ function summarize(found: OrderSummaryShape): OrderPlacementResult {
     orderNumber: found.orderNumber,
     orderId: found.id,
     orderStatus: found.status,
-    paymentStatus: found.payment?.status ?? "PENDING",
+    paymentStatus: found.payments?.[0]?.status ?? "PENDING",
     subtotal: new Prisma.Decimal(found.subtotal).toFixed(2),
     shippingTotal: new Prisma.Decimal(found.shippingTotal).toFixed(2),
     grandTotal: new Prisma.Decimal(found.grandTotal).toFixed(2),
@@ -204,8 +211,18 @@ export async function placeOrderCore(input: CheckoutInput, opts?: { userId?: str
                 lineTotal: line.lineTotal,
               })),
             },
-            statusHistory: { create: [{ status: "PENDING", note: "Order placed (Cash on Delivery)", actorType: "SYSTEM", fromStatus: null }] },
-            payment: { create: { provider: "COD", status: "PENDING", amount: grandTotal, currency: "USD" } },
+            statusHistory: { create: [{ status: "PENDING", note: `Order placed (${input.paymentMethod})`, actorType: "SYSTEM", fromStatus: null }] },
+            payments: {
+              create: [
+                {
+                  provider: input.paymentMethod === "ONLINE" ? getPaymentProvider().providerName : "COD",
+                  status: "PENDING",
+                  amount: grandTotal,
+                  currency: "USD",
+                  expiresAt: input.paymentMethod === "ONLINE" ? new Date(Date.now() + 30 * 60000) : null,
+                },
+              ],
+            },
           },
         });
 
@@ -221,7 +238,7 @@ export async function placeOrderCore(input: CheckoutInput, opts?: { userId?: str
         }
 
         await tx.auditLog.create({
-          data: { action: "ORDER_CREATED", entityType: "Order", entityId: created.id, metadata: { orderNumber: created.orderNumber, provider: "COD", status: "PENDING" } },
+          data: { action: "ORDER_CREATED", entityType: "Order", entityId: created.id, metadata: { orderNumber: created.orderNumber, provider: input.paymentMethod, status: "PENDING" } },
         });
 
         await enqueueOrderNotification(tx, {
@@ -281,19 +298,62 @@ export async function placeOrderCore(input: CheckoutInput, opts?: { userId?: str
             subtotal: created.subtotal,
             shippingTotal: created.shippingTotal,
             grandTotal: created.grandTotal,
-            payment: { status: "PENDING" },
+            lookupToken: created.lookupToken,
+            userId: created.userId,
+            payments: [{ id: "", status: "PENDING", provider: input.paymentMethod === "ONLINE" ? getPaymentProvider().providerName : "COD" }], // We don't need the exact ID here for the summary
           },
         };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 5000, timeout: 15000 }
     );
 
+    const provider = getPaymentProvider();
+    
+    const initOnlinePayment = async (orderSummary: OrderSummaryShape): Promise<OrderPlacementResult> => {
+      const baseUrl = process.env.APP_URL || "http://localhost:3000";
+      const paymentInit = await provider.initiatePayment({
+        orderId: orderSummary.id,
+        orderNumber: orderSummary.orderNumber,
+        amount: orderSummary.grandTotal,
+        currency: "USD",
+        customerEmail: input.customer.email,
+        customerName: input.customer.fullName,
+        customerPhone: input.customer.phone,
+        successUrl: `${baseUrl}/payment/return?tran_id=${orderSummary.orderNumber}&lookup_token=${orderSummary.lookupToken}`,
+        failUrl: `${baseUrl}/payment/return?tran_id=${orderSummary.orderNumber}&lookup_token=${orderSummary.lookupToken}`,
+        cancelUrl: `${baseUrl}/payment/return?tran_id=${orderSummary.orderNumber}&lookup_token=${orderSummary.lookupToken}`,
+        ipnUrl: `${baseUrl}/api/webhooks/payments`,
+      });
+
+      if (!paymentInit.ok) {
+        return { ok: false, code: "payment_init_failed", message: paymentInit.message };
+      }
+      
+      const result = summarize(orderSummary);
+      if (!result.ok) return result; // should never happen
+      return { ...result, paymentRedirectUrl: paymentInit.redirectUrl };
+    };
+
     if (outcome.kind === "replay") {
+      const isOnline = outcome.order.payments?.[0]?.provider !== "COD";
+      const isPending = outcome.order.payments?.[0]?.status === "PENDING";
+      
+      if (isOnline && isPending) {
+        const result = await initOnlinePayment(outcome.order);
+        if (result.ok) return { ...result, replayed: true };
+        return result;
+      }
+      
       const result = summarize(outcome.order);
       return result.ok ? { ...result, replayed: true } : result;
     }
     if (outcome.kind === "invalid_shipping") return { ok: false, code: "invalid_shipping", message: "The selected shipping method is not available." };
     if (outcome.kind === "blocked") return { ok: false, code: "out_of_stock", message: "Some items are no longer available or are out of stock. Please review your cart.", failedVariantIds: outcome.failedVariantIds };
+    
+    if (input.paymentMethod === "ONLINE") {
+      return initOnlinePayment(outcome.order);
+    }
+    
     return summarize(outcome.order);
   } catch (error) {
     if (error instanceof StockConflictError) {

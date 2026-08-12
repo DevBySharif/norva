@@ -24,6 +24,7 @@ function baseInput(overrides: { idempotencyKey: string; quantity?: number }): Ch
     items: [{ variantId, quantity: overrides.quantity ?? 1 }],
     customer: { fullName: "Lifecycle Tester", email, phone: "+1 555 010 0000" },
     shippingAddress: { line1: "1 Lifecycle Way", line2: "", city: "Test City", state: "TS", postalCode: "00000", country: "Testland" },
+    paymentMethod: "COD",
     shippingMethodCode: undefined,
     idempotencyKey: overrides.idempotencyKey,
   };
@@ -102,7 +103,7 @@ async function orderState(id: string) {
       orderNumber: true,
       status: true,
       lookupToken: true,
-      payment: { select: { status: true, provider: true } },
+      payments: { select: { status: true, provider: true }, orderBy: { createdAt: "desc" }, take: 1 },
       statusHistory: { orderBy: { createdAt: "asc" }, select: { status: true, fromStatus: true, note: true, internalNote: true, actorType: true } },
       items: { select: { productName: true, sku: true, unitPrice: true } },
     },
@@ -142,7 +143,7 @@ describe("Order lifecycle transitions", () => {
     const state = await orderState(order.id);
     expect(state?.status).toBe("DELIVERED");
     // COD settles at delivery.
-    expect(state?.payment?.status).toBe("PAID");
+    expect(state?.payments?.[0]?.status).toBe("PAID");
     // History records the full chain with actors and the customer-visible note.
     expect(state?.statusHistory.map((h) => h.status)).toEqual(["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"]);
     expect(state?.statusHistory.find((h) => h.status === "SHIPPED")?.fromStatus).toBe("PROCESSING");
@@ -204,7 +205,7 @@ describe("Order lifecycle transitions", () => {
     expect(state?.statusHistory.find((h) => h.status === "CANCELLED")?.fromStatus).toBe("PENDING");
     expect(state?.statusHistory.find((h) => h.status === "CANCELLED")?.note).toBe("Customer requested cancellation");
     // Cancelling must NOT settle payment.
-    expect(state?.payment?.status).toBe("PENDING");
+    expect(state?.payments?.[0]?.status).toBe("PENDING");
 
     const audits = await prisma.auditLog.findMany({ where: { entityType: "Order", entityId: order.id } });
     expect(audits.some((a) => a.action === "ORDER_CANCELLED")).toBe(true);
@@ -299,8 +300,8 @@ describe("COD payment capture", () => {
     expect(paid.ok).toBe(true);
 
     const state = await orderState(order.id);
-    expect(state?.payment?.status).toBe("PAID");
-    expect((state?.payment?.provider ?? "").toUpperCase()).toBe("COD");
+    expect(state?.payments?.[0]?.status).toBe("PAID");
+    expect((state?.payments?.[0]?.provider ?? "").toUpperCase()).toBe("COD");
 
     const repeat = await markPaymentReceivedCore(order.id, actor);
     expect(repeat.ok).toBe(false);

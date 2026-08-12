@@ -155,7 +155,7 @@ export async function transitionOrderStatusCore(
         });
 
         if (toStatus === "DELIVERED") {
-          const payment = await tx.payment.findFirst({ where: { orderId } });
+          const payment = await tx.payment.findFirst({ where: { orderId }, orderBy: { createdAt: "desc" } });
           if (payment && payment.provider.toUpperCase() === "COD" && payment.status === "PENDING") {
             await tx.payment.update({ where: { id: payment.id }, data: { status: "PAID" } });
             await tx.auditLog.create({
@@ -227,7 +227,7 @@ export async function markPaymentReceivedCore(orderId: string, actor: OrderTrans
           return { ok: false, code: "invalid_transition", message: `Payment cannot be received for a ${order.status.toLowerCase()} order.` };
         }
 
-        const payment = await tx.payment.findFirst({ where: { orderId } });
+        const payment = await tx.payment.findFirst({ where: { orderId }, orderBy: { createdAt: "desc" } });
         if (!payment) return { ok: false, code: "not_found", message: "This order has no payment record." };
         if (payment.provider.toUpperCase() !== "COD") {
           return { ok: false, code: "invalid_transition", message: "Only cash on delivery orders can be marked as received at the door." };

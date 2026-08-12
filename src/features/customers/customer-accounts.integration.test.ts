@@ -61,6 +61,7 @@ beforeAll(async () => {
     items: [{ variantId: variant.id, quantity: 1 }],
     customer: { fullName: "Guest Shopper", email: `guest-${runId}@example.test`, phone: "+1 555 010 0000" },
     shippingAddress: { line1: "1 Guest Way", line2: "", city: "Guestville", state: "GS", postalCode: "00000", country: "Guestland" },
+    paymentMethod: "COD",
     shippingMethodCode: undefined,
     idempotencyKey: `guest-${runId}`,
   });

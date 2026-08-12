@@ -45,11 +45,11 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
             <dl className="mt-3 divide-y text-sm">
               <Row label="Email" value={order.email} />
               <Row label="Status" value={order.status} />
-              <Row label="Payment" value={`${order.payment?.provider ?? "—"} · ${order.payment?.status ?? "—"}`} />
-              {order.payment?.amount != null && <Row label="Payment amount" value={formatCurrency(Number(order.payment.amount))} />}
+              <Row label="Payment" value={`${order.payments?.[0]?.provider ?? "—"} · ${order.payments?.[0]?.status ?? "—"}`} />
+              {order.payments?.[0]?.amount != null && <Row label="Payment amount" value={formatCurrency(Number(order.payments[0].amount))} />}
             </dl>
           </section>
-          <OrderStatusActions orderId={order.id} availableTransitions={transitions} payment={{ provider: order.payment?.provider ?? null, status: order.payment?.status ?? null }} />
+          <OrderStatusActions orderId={order.id} availableTransitions={transitions} payment={{ provider: order.payments?.[0]?.provider ?? null, status: order.payments?.[0]?.status ?? null }} />
         </div>
 
         <section className="mt-6 rounded-xl border bg-card p-5">
