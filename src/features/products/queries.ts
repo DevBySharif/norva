@@ -2,7 +2,7 @@ import "server-only";
 import { ProductStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 
-export const productCardSelect = { id: true, name: true, slug: true, basePrice: true, compareAtPrice: true, brand: { select: { name: true, slug: true } }, images: { where: { isPrimary: true }, take: 1, select: { url: true, altText: true } }, variants: { where: { isActive: true }, select: { price: true, salePrice: true, inventory: { select: { quantity: true, reservedQuantity: true } } } } } satisfies Prisma.ProductSelect;
+export const productCardSelect = { id: true, name: true, slug: true, basePrice: true, compareAtPrice: true, brand: { select: { name: true, slug: true } }, images: { orderBy: [{ isPrimary: "desc" }, { position: "asc" }], take: 1, select: { url: true, altText: true } }, variants: { where: { isActive: true }, select: { price: true, salePrice: true, inventory: { select: { quantity: true, reservedQuantity: true } } } }, reviews: { where: { isPublished: true }, select: { rating: true } } } satisfies Prisma.ProductSelect;
 
 export async function getStoreProducts(input: { q?: string; brand?: string; category?: string; sort?: string; page?: number }) {
   const page = Math.max(input.page ?? 1, 1); const take = 24;

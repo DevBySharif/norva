@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/hooks/use-cart";
 import { useHydratedCart, type HydratedCartItem } from "@/hooks/use-hydrated-cart";
 import { formatCurrency } from "@/lib/utils";
+import { ProductMediaFallback } from "@/components/store/product-media-fallback";
 import { placeOrder, getShippingMethodsPublic } from "@/features/orders/actions";
 import { previewCheckoutTotals } from "@/features/coupons/actions";
 import { getCheckoutPrefill } from "@/features/customers/actions";
@@ -349,7 +350,7 @@ export default function CheckoutPage() {
               return (
                 <li key={item.variantId} className={`py-4 flex gap-4 ${!item.isAvailable ? "opacity-60" : ""}`}>
                   <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-gray-100">
-                    {item.image ? <Image src={item.image.url} alt={item.image.altText ?? item.productName} fill className="object-cover" /> : null}
+                    {item.image ? <Image src={item.image.url} alt={item.image.altText ?? item.productName} fill className="object-cover" /> : <ProductMediaFallback name={item.productName} className="p-1" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 line-clamp-1">{item.productName}</p>

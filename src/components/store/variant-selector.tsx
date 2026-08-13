@@ -23,6 +23,7 @@ type SelectorProps = {
 
 export function VariantSelector({ basePrice, options, variants }: SelectorProps) {
   const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
   const hasOptions = options && options.length > 0;
   
   // Find first available variant or fallback to first variant
@@ -62,12 +63,14 @@ export function VariantSelector({ basePrice, options, variants }: SelectorProps)
   const available = selectedVariant ? (selectedVariant.inventory?.quantity ?? 0) - (selectedVariant.inventory?.reservedQuantity ?? 0) : 0;
 
   const handleSelect = (optionId: string, valueId: string) => {
+    setAdded(false);
     setSelectedValues(prev => ({ ...prev, [optionId]: valueId }));
   };
 
   const handleAddToCart = () => {
     if (selectedVariant && available > 0) {
       addItem(selectedVariant.id, 1);
+      setAdded(true);
     }
   };
 
@@ -106,6 +109,7 @@ export function VariantSelector({ basePrice, options, variants }: SelectorProps)
 
                   return (
                     <button
+                      type="button"
                       key={val.id}
                       onClick={() => handleSelect(option.id, val.id)}
                       disabled={!isAvailable}
@@ -129,12 +133,14 @@ export function VariantSelector({ basePrice, options, variants }: SelectorProps)
       )}
 
       <button 
+        type="button"
         disabled={!selectedVariant || available <= 0} 
         onClick={handleAddToCart}
         className="mt-8 h-12 w-full rounded-md bg-gray-900 px-8 text-base font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
       >
         {selectedVariant && available > 0 ? "Add to cart" : "Unavailable"}
       </button>
+      {added && <p role="status" className="mt-2 text-sm font-medium text-green-700">Item added. Open the cart to review quantities.</p>}
     </div>
   );
 }

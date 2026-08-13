@@ -378,7 +378,12 @@ test.describe("Phase 4A Customer Accounts", () => {
     // Delete the default; a replacement default is promoted; exactly one default remains.
     const addressCountBefore = await prisma.address.count({ where: { userId: userA!.id } });
     page.on("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: "Delete" }).first().click();
+    await page
+      .getByTestId("address-list")
+      .locator("li")
+      .filter({ has: page.getByText("Default", { exact: true }) })
+      .getByRole("button", { name: "Delete" })
+      .click();
     await expect(page.getByTestId("address-list").locator("li")).toHaveCount(1);
     expect(await prisma.address.count({ where: { userId: userA!.id } })).toBe(addressCountBefore - 1);
     expect(await prisma.address.count({ where: { userId: userA!.id, isDefault: true } })).toBe(1);
@@ -393,6 +398,11 @@ test.describe("Phase 4A Customer Accounts", () => {
     await page.getByLabel("Full name").fill("Alpha Updated");
     await page.getByRole("button", { name: "Save changes" }).click();
 
+    const customer = await prisma.user.findUniqueOrThrow({ where: { email: emailA } });
+    const defaultAddress = await prisma.address.findFirstOrThrow({
+      where: { userId: customer.id, isDefault: true },
+    });
+
     await resetCart();
     await addToCart();
     await page.goto("/checkout");
@@ -400,8 +410,8 @@ test.describe("Phase 4A Customer Accounts", () => {
     await expect(page.getByLabel("Full name")).toHaveValue("Alpha Updated");
     await expect(page.getByLabel("Email", { exact: true })).toHaveValue(emailA);
     await expect(page.getByLabel("Phone", { exact: true })).toHaveValue("+1 555 010 0999");
-    await expect(page.getByLabel("Address line 1")).toHaveValue("100 Alpha Street Updated");
-    await expect(page.getByLabel("City")).toHaveValue("A-Town");
+    await expect(page.getByLabel("Address line 1")).toHaveValue(defaultAddress.line1);
+    await expect(page.getByLabel("City")).toHaveValue(defaultAddress.city);
   });
 
   test("AQ: customer pages leak no private/internal fields", async () => {

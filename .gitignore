@@ -1,4 +1,5 @@
 node_modules
+.media/
 .next
 .env
 .env.local

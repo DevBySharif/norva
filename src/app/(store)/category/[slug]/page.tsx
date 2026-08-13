@@ -1,3 +1,24 @@
-import { notFound } from "next/navigation"; import type { Metadata } from "next"; import { getCategoryBySlug } from "@/features/categories/queries"; import { getStoreProducts } from "@/features/products/queries"; import { ProductCard } from "@/components/store/product-card"; import { EmptyState } from "@/components/shared/empty-state";
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> { const c = await getCategoryBySlug((await params).slug); return c ? { title: c.seoTitle ?? c.name, description: c.seoDescription ?? c.description ?? undefined, alternates: { canonical: `/category/${c.slug}` } } : {}; }
-export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) { const c = await getCategoryBySlug((await params).slug); if (!c) notFound(); const { products } = await getStoreProducts({ category: c.slug }); return <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6"><h1 className="text-3xl font-semibold">{c.name}</h1>{c.description && <p className="mt-3 max-w-xl text-muted-foreground">{c.description}</p>}{c.children.length > 0 && <div className="mt-6 flex gap-3">{c.children.map((child) => <span className="rounded border px-3 py-2 text-sm" key={child.id}>{child.name}</span>)}</div>}{products.length ? <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{products.map((p) => <ProductCard key={p.id} product={p}/>)}</div> : <div className="mt-8"><EmptyState title="No products in this category"/></div>}</section>; }
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { EmptyState } from "@/components/shared/empty-state";
+import { ProductCard } from "@/components/store/product-card";
+import { getCategoryBySlug } from "@/features/categories/queries";
+import { getStoreProducts } from "@/features/products/queries";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const category = await getCategoryBySlug((await params).slug);
+  return category ? { title: category.seoTitle ?? category.name, description: category.seoDescription ?? category.description ?? undefined, alternates: { canonical: `/category/${category.slug}` } } : {};
+}
+
+export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const category = await getCategoryBySlug((await params).slug);
+  if (!category) notFound();
+  const { products } = await getStoreProducts({ category: category.slug });
+  return <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+    <h1 className="text-3xl font-semibold">{category.name}</h1>
+    {category.description && <p className="mt-3 max-w-xl text-muted-foreground">{category.description}</p>}
+    {category.children.length > 0 && <div className="mt-6 flex flex-wrap gap-3">{category.children.map((child) => <Link className="rounded border px-3 py-2 text-sm hover:bg-card" href={`/category/${child.slug}`} key={child.id}>{child.name}</Link>)}</div>}
+    {products.length ? <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{products.map((product) => <ProductCard key={product.id} product={product}/>)}</div> : <div className="mt-8"><EmptyState title="No products in this category" description="Products will appear here when this category is stocked."/></div>}
+  </section>;
+}

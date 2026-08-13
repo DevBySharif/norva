@@ -34,9 +34,7 @@ async function save(input: unknown, existingId?: string): Promise<ProductActionR
       };
 
       if (!existingId) {
-        const created = await tx.product.create({ 
-          data: { ...values, images: data.imageUrl ? { create: { url: data.imageUrl, altText: data.imageAlt || null, isPrimary: true, position: 0 } } : undefined } 
-        });
+        const created = await tx.product.create({ data: { ...values, images: data.imageUrl ? { create: { url: data.imageUrl, altText: data.imageAlt || data.name, position: 0, isPrimary: true } } : undefined } });
         
         if (data.options.length > 0) {
           for (const [oIdx, opt] of data.options.entries()) {
@@ -89,10 +87,7 @@ async function save(input: unknown, existingId?: string): Promise<ProductActionR
          throw new Error("Cannot remove all options from a multi-variant product.");
       }
       
-      const updated = await tx.product.update({ 
-        where: { id: existingId }, 
-        data: { ...values, images: { deleteMany: {}, ...(data.imageUrl ? { create: { url: data.imageUrl, altText: data.imageAlt || null, isPrimary: true, position: 0 } } : {}) } } 
-      });
+      const updated = await tx.product.update({ where: { id: existingId }, data: values });
 
       const submittedOptionIds = new Set(data.options.map(o => o.id));
       let inventoryChanged = false;

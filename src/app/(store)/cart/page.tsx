@@ -6,6 +6,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useHydratedCart, type HydratedCartItem } from "@/hooks/use-hydrated-cart";
 import { formatCurrency } from "@/lib/utils";
 import { Minus, Plus, Trash2 } from "lucide-react";
+import { ProductMediaFallback } from "@/components/store/product-media-fallback";
 
 export default function CartPage() {
   const { setQuantity, removeItem } = useCart();
@@ -60,7 +61,7 @@ export default function CartPage() {
                   <div className="shrink-0 w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-md overflow-hidden relative">
                     {item.image ? (
                       <Image src={item.image.url} alt={item.image.altText ?? item.productName} fill className="object-cover" />
-                    ) : null}
+                    ) : <ProductMediaFallback name={item.productName} className="p-2" />}
                   </div>
 
                   <div className="flex-1 flex flex-col justify-between">

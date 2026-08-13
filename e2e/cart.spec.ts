@@ -121,6 +121,9 @@ test.describe("Guest Cart Flow", () => {
 
     await page.getByRole("button", { name: "Add to cart" }).click();
     await expect(cartIndicator).toHaveText("1");
+    await expect(
+      page.getByText("Item added. Open the cart to review quantities."),
+    ).toBeVisible();
 
     await page.goto("/cart");
     await expect(page.getByRole("heading", { name: "Your Cart" })).toBeVisible();

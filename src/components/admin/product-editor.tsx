@@ -5,8 +5,9 @@ import { createProduct, updateProduct } from "@/features/products/actions";
 import { OptionInput, generateCombinations } from "@/features/products/variant-combinations";
 import { OptionsBuilder } from "./options-builder";
 import { VariantMatrix, VariantRow } from "./variant-matrix";
+import { ProductMediaManager, ManagedImage } from "./product-media-manager";
 
-type EditorProduct = { id: string; name: string; slug: string; shortDescription: string | null; description: string | null; status: string; categoryId: string; brandId: string | null; seoTitle: string | null; seoDescription: string | null; sku: string; basePrice: unknown; options?: { id: string; name: string; values: { id: string; value: string; }[] }[]; variants: { id: string; combinationKey: string | null; sku: string; price: unknown; salePrice: unknown; costPrice: unknown; inventory: { quantity: number; reorderPoint: number | null } | null; optionValues: { optionValueId: string; optionValue: { value: string } }[] }[]; images: { url: string; altText: string | null }[] };
+type EditorProduct = { id: string; name: string; slug: string; shortDescription: string | null; description: string | null; status: string; categoryId: string; brandId: string | null; seoTitle: string | null; seoDescription: string | null; sku: string; basePrice: unknown; options?: { id: string; name: string; values: { id: string; value: string; }[] }[]; variants: { id: string; combinationKey: string | null; sku: string; price: unknown; salePrice: unknown; costPrice: unknown; inventory: { quantity: number; reorderPoint: number | null } | null; optionValues: { optionValueId: string; optionValue: { value: string } }[] }[]; images: ManagedImage[] };
 type Props = { product?: EditorProduct; categories: { id: string; label: string }[]; brands: { id: string; name: string }[] };
 
 const value = (v: unknown) => v == null ? "" : String(v);
@@ -15,7 +16,6 @@ const num = (v: unknown) => v == null ? 0 : Number(v);
 export function ProductEditor({ product, categories, brands }: Props) {
   const router = useRouter(); 
   const [pending, start] = useTransition();
-  const image = product?.images?.[0];
   const [message, setMessage] = useState("");
 
   const initialOptions = product?.options?.map(o => ({
@@ -125,7 +125,8 @@ export function ProductEditor({ product, categories, brands }: Props) {
       <Grid><Label label="Category"><select required name="categoryId" defaultValue={product?.categoryId} className={field}><option value="">Select a category</option>{categories.map(x => <option value={x.id} key={x.id}>{x.label}</option>)}</select></Label><Label label="Brand"><select required name="brandId" defaultValue={product?.brandId ?? undefined} className={field}><option value="">Select a brand</option>{brands.map(x => <option value={x.id} key={x.id}>{x.name}</option>)}</select></Label></Grid>
     </Section>
     <Section title="Media">
-      <Grid><Label label="Image URL"><input type="url" name="imageUrl" defaultValue={image?.url} className={field}/></Label><Label label="Image alt text"><input name="imageAlt" defaultValue={image?.altText ?? undefined} className={field}/></Label></Grid>
+      <ProductMediaManager productId={product?.id} productName={product?.name || "Product"} images={product?.images || []}/>
+      {!product && <details open className="text-sm"><summary className="cursor-pointer font-medium">Advanced: start with an existing public image URL</summary><Grid><Label label="Image URL"><input type="url" name="imageUrl" className={field}/></Label><Label label="Image alt text"><input name="imageAlt" className={field}/></Label></Grid></details>}
     </Section>
     
     <Section title="Options & Variants">
