@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { brandProductCount, cleanupBrandBySlug, countBrandsBySlug, disconnectE2EDatabase, findBrandBySlug, seededBrandWithProducts } from "./helpers/db";
+import { brandProductCount, cleanupBrandBySlug, cleanupProductBySlug, countBrandsBySlug, createBrandProductFixture, disconnectE2EDatabase, findBrandBySlug } from "./helpers/db";
 import { runId } from "./helpers/test-data";
 
 const id = runId();
@@ -7,8 +7,12 @@ const primaryName = `e2e-brand-primary-${id}`;
 const otherName = `e2e-brand-other-${id}`;
 const primarySlug = primaryName;
 const otherSlug = otherName;
+const fixtureSlug = `e2e-brand-fixture-${id}`;
+const fixtureProductSlug = `e2e-brand-product-${id}`;
 
 test.afterAll(async () => {
+  await cleanupProductBySlug(fixtureProductSlug);
+  await cleanupBrandBySlug(fixtureSlug);
   await cleanupBrandBySlug(primarySlug);
   await cleanupBrandBySlug(otherSlug);
   await disconnectE2EDatabase();
@@ -26,10 +30,9 @@ test("authenticated brand CRUD and duplicate-slug validation", async ({ page }) 
   };
 
   await page.goto("/admin/brands");
-  const seeded = await seededBrandWithProducts();
-  expect(seeded).not.toBeNull();
-  if (!seeded) throw new Error("Expected seeded brand with products.");
+  const seeded = await createBrandProductFixture(fixtureSlug, fixtureProductSlug);
   const brandCount = await brandProductCount(seeded.id);
+  await page.reload();
   await expect(page.locator("tr", { hasText: seeded.slug }).first().locator("td").nth(2)).toHaveText(`${brandCount} ${brandCount === 1 ? "product" : "products"}`);
 
   await createForm().getByLabel("Name").fill(primaryName);

@@ -14,7 +14,8 @@
     "test:e2e": "npm run build && playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:variants": "vitest run src/features/products/variant-combinations.test.ts src/features/products/variant-diff.test.ts",
-    "test:variant-db": "vitest run src/features/products/variant-db.integration.test.ts"
+    "test:variant-db": "vitest run src/features/products/variant-db.integration.test.ts",
+    "test:phase5b-server": "vitest run src/features/reviews/phase5b-server.integration.test.ts"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

@@ -55,8 +55,10 @@ test("2x2 multi-variant product: creation, ID preservation, and selector E2E", a
   await page.getByRole("spinbutton", { name: "Price for Red / S", exact: true }).fill("55.00");
   await page.getByRole("spinbutton", { name: "Quantity for Red / S" }).fill("0");
 
-  await page.getByRole("button", { name: "Create product" }).click();
-  await expect(page.getByRole("status")).toHaveText("Product created.");
+  await Promise.all([
+    page.waitForURL((url) => /^\/admin\/products\/[^/]+$/.test(url.pathname) && !url.pathname.endsWith("/new")),
+    page.getByRole("button", { name: "Create product" }).click(),
+  ]);
   
   // 2. Assert DB state and collect IDs
   const created = await findProductBySlug(slug2x2);

@@ -138,7 +138,10 @@ test.describe("Phase 4B Notifications (admin)", () => {
     await failedChip.click();
     await expect(page.getByTestId(`notify-row-status-${row.id}`)).toHaveText("FAILED");
 
-    await page.getByTestId(`notify-retry-${row.id}`).click();
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: "load" }),
+      page.getByTestId(`notify-retry-${row.id}`).click(),
+    ]);
 
     await expect.poll(async () => {
       const after = await prisma.notificationOutbox.findUnique({ where: { id: row.id } });

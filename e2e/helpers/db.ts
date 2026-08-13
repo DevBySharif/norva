@@ -9,6 +9,14 @@ export const seededCategoryWithProducts = () => prisma.category.findFirst({ wher
 export const countBrandsBySlug = (slug: string) => prisma.brand.count({ where: { slug } });
 export const brandProductCount = (id: string) => prisma.product.count({ where: { brandId: id } });
 export const seededBrandWithProducts = () => prisma.brand.findFirst({ where: { products: { some: {} } }, select: { id: true, slug: true } });
+export async function createBrandProductFixture(brandSlug: string, productSlug: string) {
+  owned(brandSlug); owned(productSlug);
+  const category = await prisma.category.findFirst({ select: { id: true } });
+  if (!category) throw new Error("E2E brand fixture requires a category.");
+  const brand = await prisma.brand.create({ data: { name: brandSlug, slug: brandSlug } });
+  await prisma.product.create({ data: { name: productSlug, slug: productSlug, sku: `${productSlug}-sku`, basePrice: "10.00", categoryId: category.id, brandId: brand.id, status: "ACTIVE", variants: { create: { name: "Standard", sku: `${productSlug}-sku-std`, price: "10.00", inventory: { create: { quantity: 1 } } } } } });
+  return brand;
+}
 export const findUserByEmail = (email: string) => prisma.user.findUnique({ where: { email } });
 export const findAuditLogsForEntity = (entityType: string, entityId: string) => prisma.auditLog.findMany({ where: { entityType, entityId }, orderBy: { createdAt: "asc" } });
 export const countAuditLogsForEntity = (entityType: string, entityId: string) => prisma.auditLog.count({ where: { entityType, entityId } });

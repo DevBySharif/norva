@@ -1,0 +1,3 @@
+"use client";
+import { useState, useTransition } from "react"; import { toggleWishlist } from "@/features/wishlist/actions";
+export function WishlistButton({ productId, initialSaved = false }: { productId: string; initialSaved?: boolean }) { const [pending, start] = useTransition(); const [saved, setSaved] = useState(initialSaved); return <button type="button" className="catalog-secondary-button" disabled={pending} onClick={() => start(async () => { const result = await toggleWishlist(productId); if (result.success) setSaved(Boolean(result.saved)); })} aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}>{pending ? "Saving…" : saved ? "Remove from wishlist" : "Add to wishlist"}</button>; }
