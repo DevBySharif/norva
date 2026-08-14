@@ -6,8 +6,9 @@ import { OptionInput, generateCombinations } from "@/features/products/variant-c
 import { OptionsBuilder } from "./options-builder";
 import { VariantMatrix, VariantRow } from "./variant-matrix";
 import { ProductMediaManager, ManagedImage } from "./product-media-manager";
+import { ProductModelManager, ManagedModel } from "./product-model-manager";
 
-type EditorProduct = { id: string; name: string; slug: string; shortDescription: string | null; description: string | null; status: string; categoryId: string; brandId: string | null; seoTitle: string | null; seoDescription: string | null; sku: string; basePrice: unknown; options?: { id: string; name: string; values: { id: string; value: string; }[] }[]; variants: { id: string; combinationKey: string | null; sku: string; price: unknown; salePrice: unknown; costPrice: unknown; inventory: { quantity: number; reorderPoint: number | null } | null; optionValues: { optionValueId: string; optionValue: { value: string } }[] }[]; images: ManagedImage[] };
+type EditorProduct = { id: string; name: string; slug: string; shortDescription: string | null; description: string | null; status: string; categoryId: string; brandId: string | null; seoTitle: string | null; seoDescription: string | null; sku: string; basePrice: unknown; options?: { id: string; name: string; values: { id: string; value: string; }[] }[]; variants: { id: string; combinationKey: string | null; sku: string; price: unknown; salePrice: unknown; costPrice: unknown; inventory: { quantity: number; reorderPoint: number | null } | null; optionValues: { optionValueId: string; optionValue: { value: string } }[] }[]; images: ManagedImage[]; model3d?: ManagedModel | null };
 type Props = { product?: EditorProduct; categories: { id: string; label: string }[]; brands: { id: string; name: string }[] };
 
 const value = (v: unknown) => v == null ? "" : String(v);
@@ -128,7 +129,10 @@ export function ProductEditor({ product, categories, brands }: Props) {
       <ProductMediaManager productId={product?.id} productName={product?.name || "Product"} images={product?.images || []}/>
       {!product && <details open className="text-sm"><summary className="cursor-pointer font-medium">Advanced: start with an existing public image URL</summary><Grid><Label label="Image URL"><input type="url" name="imageUrl" className={field}/></Label><Label label="Image alt text"><input name="imageAlt" className={field}/></Label></Grid></details>}
     </Section>
-    
+    <Section title="3D Product Model">
+      <ProductModelManager productId={product?.id} productName={product?.name || "Product"} model={product?.model3d}/>
+    </Section>
+
     <Section title="Options & Variants">
        {options.length > 0 && (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 bg-[#F0EEE6]/50 p-4 rounded-lg border border-[#d8d0c3]/50">

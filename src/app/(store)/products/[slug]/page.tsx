@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) { 
   const product = await getProductBySlug((await params).slug); 
   if (!product) notFound(); const session = await getCurrentUser(); const customerId = session?.user.role === "CUSTOMER" ? session.user.id : undefined; const [reviewData, ownReview, eligible, isWishlisted] = await Promise.all([getProductReviews(product.id), getCustomerReview(product.id, customerId), canReviewProduct(product.id, customerId), isProductWishlisted(customerId, product.id)]);
-  return <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6"><p className="text-sm text-muted-foreground">{product.category.name}{product.brand ? ` / ${product.brand.name}` : ""}</p><div className="mt-5 grid gap-8 lg:grid-cols-2"><ProductGallery images={product.images} productName={product.name}/><div><h1 className="text-3xl font-semibold">{product.name}</h1>
+  return <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6"><p className="text-sm text-muted-foreground">{product.category.name}{product.brand ? ` / ${product.brand.name}` : ""}</p><div className="mt-5 grid gap-8 lg:grid-cols-2"><ProductGallery images={product.images} productName={product.name} modelUrl={product.model3d?.publicUrl}/><div><h1 className="text-3xl font-semibold">{product.name}</h1>
   <VariantSelector 
     basePrice={Number(product.basePrice)} 
     options={product.options} 

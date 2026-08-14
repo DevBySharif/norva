@@ -14,4 +14,4 @@ export async function getAdminProducts(input: { q?: string; status?: string; cat
   return { products, page, pages: Math.max(1, Math.ceil(total / take)), total };
 }
 
-export const getAdminProductById = (id: string) => prisma.product.findFirst({ where: { id, deletedAt: null }, include: { images: { orderBy: { position: "asc" } }, options: { orderBy: { position: "asc" }, include: { values: { orderBy: { position: "asc" } } } }, variants: { orderBy: { createdAt: "asc" }, include: { inventory: true, optionValues: { include: { optionValue: true } } } } } });
+export const getAdminProductById = (id: string) => prisma.product.findFirst({ where: { id, deletedAt: null }, include: { model3d: true, images: { orderBy: { position: "asc" } }, options: { orderBy: { position: "asc" }, include: { values: { orderBy: { position: "asc" } } } }, variants: { orderBy: { createdAt: "asc" }, include: { inventory: true, optionValues: { include: { optionValue: true } } } } } });
