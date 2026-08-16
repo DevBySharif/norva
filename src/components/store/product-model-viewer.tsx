@@ -19,20 +19,26 @@ export function ProductModelViewer({ src, productName }: { src: string; productN
       })
     ]).catch(() => active && setFailed(true)); 
     
+    const fallbackTimer = setTimeout(() => { if (active) setReady(true); }, 2000);
     const currentRef = ref.current;
     if (currentRef) {
-      const handleLoad = () => { if (active) setReady(true); };
-      const handleError = () => { if (active) setFailed(true); };
+      const handleLoad = () => { clearTimeout(fallbackTimer); if (active) setReady(true); };
+      const handleError = () => { clearTimeout(fallbackTimer); if (active) setFailed(true); };
+      
       currentRef.addEventListener("load", handleLoad);
       currentRef.addEventListener("error", handleError);
       return () => { 
         active = false; 
+        clearTimeout(fallbackTimer);
         currentRef.removeEventListener("load", handleLoad);
         currentRef.removeEventListener("error", handleError);
       };
     }
     
-    return () => { active = false; }; 
+    return () => { 
+      active = false; 
+      clearTimeout(fallbackTimer);
+    }; 
   }, [src]);
 
   // Use a second effect to handle the case where ref isn't immediately populated before the first effect runs

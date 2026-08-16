@@ -198,8 +198,8 @@ export default async function HomePage() {
       </section>
 
       {/* Brand statement */}
-      <section className="store-container py-20 sm:py-32">
-        <div className="grid gap-10 border-y border-[#d8d0c3] py-16 sm:py-20 md:grid-cols-2 md:gap-16 items-center">
+      <section className="store-container pb-16 sm:pb-24 pt-4 sm:pt-8">
+        <div className="grid gap-10 border-y border-[#d8d0c3] py-12 sm:py-16 md:grid-cols-2 md:gap-16 items-center">
           <div>
             <p className="store-eyebrow text-[#8b5946]">The Norva standard</p>
             <h2 className="mt-5 text-4xl font-medium leading-[1.1] tracking-tight text-[#2c2825] sm:text-5xl">
