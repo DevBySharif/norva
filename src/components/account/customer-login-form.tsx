@@ -23,8 +23,7 @@ export function CustomerLoginForm({ defaultCallbackUrl }: { defaultCallbackUrl: 
       return;
     }
     console.log("SIGN IN SUCCESS, redirecting to", defaultCallbackUrl);
-    // Hard navigation so the session cookie is applied by the server on the next request.
-    window.location.assign(defaultCallbackUrl);
+    window.location.href = defaultCallbackUrl;
   }
 
   const inputClass = "mt-1.5 block min-h-11 w-full rounded-md border border-[#d8d0c3] bg-[#fffdf7]/80 px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary";

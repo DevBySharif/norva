@@ -11,7 +11,7 @@ echo ============================================
 echo.
 
 if not exist node_modules (
-  echo Installing dependencies (first run only)...
+  echo Installing dependencies ^(first run only^)...
   call npm install
   if errorlevel 1 (
     echo.

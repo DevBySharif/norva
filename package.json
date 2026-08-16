@@ -11,7 +11,7 @@
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
     "seed:admin": "node prisma/restore-dev-admin.js",
-    "test:e2e": "npm run build && playwright test",
+    "test:e2e": "node -e \"require('http').get('http://localhost:3000',(res)=>{console.error('\\nERROR: Dev server running. Stop it before E2E tests to prevent .next corruption!\\n');process.exit(1)}).on('error',()=>{process.exit(0)})\" && npm run build && playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:variants": "vitest run src/features/products/variant-combinations.test.ts src/features/products/variant-diff.test.ts",
     "test:variant-db": "vitest run src/features/products/variant-db.integration.test.ts",
@@ -41,6 +41,8 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
+    "@gltf-transform/core": "^4.4.2",
+    "@gltf-transform/functions": "^4.4.2",
     "@playwright/test": "^1.62.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.15.3",

@@ -42,6 +42,7 @@ export class TestPaymentProvider implements PaymentProviderAdapter {
 
   async verifyNotification(requestBody: unknown, requestHeaders: Record<string, string>): Promise<PaymentValidationResult> {
     // Expects a JSON body for TEST webhooks
+    void requestHeaders;
     if (typeof requestBody !== "object" || !requestBody) {
       return { ok: false, message: "Invalid payload format" };
     }

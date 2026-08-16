@@ -1,13 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import type { PaymentValidationResult } from "./types";
-import {
-  buildOrderNotificationPayload,
-  enqueueOrderNotification,
-  EVENT_BY_STATUS,
-} from "@/features/notifications/outbox";
-
-class PaymentReconciliationError extends Error {}
+import { buildOrderNotificationPayload, enqueueOrderNotification } from "@/features/notifications/outbox";
 
 /**
  * Reconciles a validated payment event (from IPN or success callback).

@@ -94,7 +94,7 @@ export class SSLCommerzPaymentProvider implements PaymentProviderAdapter {
       }
 
       return { ok: false, message: (data.failedreason as string) || "Failed to initialize SSLCOMMERZ payment." };
-    } catch (error) {
+    } catch {
       return { ok: false, message: "Network error initializing payment." };
     }
   }
@@ -124,13 +124,14 @@ export class SSLCommerzPaymentProvider implements PaymentProviderAdapter {
       }
 
       return { ok: false, message: "Validation failed with SSLCOMMERZ", rawPayload: data };
-    } catch (error) {
+    } catch {
       return { ok: false, message: "Network error validating payment." };
     }
   }
 
-  async verifyNotification(requestBody: unknown, _requestHeaders: Record<string, string>): Promise<PaymentValidationResult> {
+  async verifyNotification(requestBody: unknown, requestHeaders: Record<string, string>): Promise<PaymentValidationResult> {
     const data = requestBody as Record<string, unknown>;
+    void requestHeaders;
     
     // IPN sends status = VALID if successful. We MUST validate via val_id.
     if (data.status === "VALID" && typeof data.val_id === "string") {

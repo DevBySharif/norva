@@ -6,6 +6,7 @@ import { useCart } from "@/hooks/use-cart";
 
 type SelectorProps = {
   basePrice: { toString(): string };
+  compareAtPrice?: { toString(): string } | number | null;
   options?: Array<{
     id: string;
     name: string;
@@ -21,7 +22,7 @@ type SelectorProps = {
   }>;
 };
 
-export function VariantSelector({ basePrice, options, variants }: SelectorProps) {
+export function VariantSelector({ basePrice, compareAtPrice, options, variants }: SelectorProps) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
   const hasOptions = options && options.length > 0;
@@ -59,7 +60,7 @@ export function VariantSelector({ basePrice, options, variants }: SelectorProps)
     ? Number(selectedVariant.salePrice ?? selectedVariant.price ?? basePrice)
     : Number(basePrice);
     
-  const compareAt = selectedVariant?.salePrice ? Number(selectedVariant.price ?? basePrice) : null;
+  const compareAt = selectedVariant?.salePrice ? Number(selectedVariant.price ?? basePrice) : (compareAtPrice != null ? Number(compareAtPrice) : null);
   const available = selectedVariant ? (selectedVariant.inventory?.quantity ?? 0) - (selectedVariant.inventory?.reservedQuantity ?? 0) : 0;
 
   const handleSelect = (optionId: string, valueId: string) => {
@@ -77,7 +78,7 @@ export function VariantSelector({ basePrice, options, variants }: SelectorProps)
   return (
     <div className="mt-4">
       <div className="flex items-baseline gap-3">
-        <p className="text-2xl font-semibold text-gray-900">{formatCurrency(price)}</p>
+        <p className="text-2xl font-semibold tracking-tight text-foreground">{formatCurrency(price)}</p>
         {compareAt && (
           <p className="text-sm font-medium text-muted-foreground line-through">
             {formatCurrency(compareAt)}
@@ -85,11 +86,11 @@ export function VariantSelector({ basePrice, options, variants }: SelectorProps)
         )}
       </div>
       
-      <p className="mt-2 text-sm font-medium text-gray-600">
+      <p className="mt-2 text-sm font-medium text-[#554a41]">
         {available > 0 ? (
-          <span className="text-green-700">In stock</span>
+          <span className="text-[#4a6a42]">In stock</span>
         ) : (
-          <span className="text-red-600">Out of stock</span>
+          <span className="text-[#a04b3c]">Out of stock</span>
         )}
       </p>
 
@@ -97,8 +98,8 @@ export function VariantSelector({ basePrice, options, variants }: SelectorProps)
         <div className="mt-6 space-y-5">
           {options.map((option) => (
             <div key={option.id}>
-              <h3 className="text-sm font-medium text-gray-900">{option.name}</h3>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <h3 className="text-sm font-semibold text-foreground">{option.name}</h3>
+              <div className="mt-2.5 flex flex-wrap gap-2">
                 {option.values.map((val) => {
                   const isSelected = selectedValues[option.id] === val.id;
                   
@@ -113,12 +114,12 @@ export function VariantSelector({ basePrice, options, variants }: SelectorProps)
                       key={val.id}
                       onClick={() => handleSelect(option.id, val.id)}
                       disabled={!isAvailable}
-                      className={`min-w-[3rem] rounded-md border px-3 py-2 text-sm font-medium transition-colors
+                      className={`min-w-[3rem] rounded-[3px] border px-3 py-2 text-sm font-medium transition-colors
                         ${isSelected 
-                          ? "border-[#D57959] bg-[#D57959] text-white" 
+                          ? "border-[#d57959] bg-[#d57959] text-primary-foreground" 
                           : isAvailable 
-                            ? "border-gray-300 bg-white text-gray-900 hover:bg-gray-50" 
-                            : "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60"
+                            ? "border-[#bcae9d] bg-[#fffdf7]/60 text-foreground hover:border-[#9f8c78] hover:bg-[#fffdf7]" 
+                            : "cursor-not-allowed border-[#d8d0c3] bg-[#e8e2d9] text-muted-foreground opacity-60"
                         }`}
                       aria-pressed={isSelected}
                     >
@@ -136,11 +137,11 @@ export function VariantSelector({ basePrice, options, variants }: SelectorProps)
         type="button"
         disabled={!selectedVariant || available <= 0} 
         onClick={handleAddToCart}
-        className="mt-8 h-12 w-full rounded-md bg-gray-900 px-8 text-base font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+        className="mt-8 h-12 w-full rounded-[3px] bg-primary px-8 text-base font-semibold text-primary-foreground transition-colors duration-200 hover:bg-[#c96b4e] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {selectedVariant && available > 0 ? "Add to cart" : "Unavailable"}
       </button>
-      {added && <p role="status" className="mt-2 text-sm font-medium text-green-700">Item added. Open the cart to review quantities.</p>}
+      {added && <p role="status" className="mt-2 text-sm font-medium text-[#4a6a42]">Item added. Open the cart to review quantities.</p>}
     </div>
   );
 }

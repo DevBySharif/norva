@@ -92,7 +92,7 @@ test("Phase 5B wishlist, reviews, moderation, privacy, and live dashboard", asyn
       await pageA.reload();
       await expect(pageA.getByText("Verified Purchase")).toBeVisible();
       await expect(pageA.getByText(`Excellent ${id}`)).toBeVisible();
-      await expect(pageA.getByText("5.0 ★ · 1 review")).toBeVisible();
+      await expect(pageA.getByText("★ 5.0 from 1 review")).toBeVisible();
 
       await pageA.getByLabel("Rating from one to five stars").selectOption("4");
       await pageA.getByLabel("Title (optional)").fill(`Edited ${id}`);
@@ -100,7 +100,7 @@ test("Phase 5B wishlist, reviews, moderation, privacy, and live dashboard", asyn
       await pageA.getByRole("button", { name: "Save review" }).click();
       await pageA.reload();
       await expect(pageA.getByText(`Edited ${id}`)).toBeVisible();
-      await expect(pageA.getByText("4.0 ★ · 1 review")).toBeVisible();
+      await expect(pageA.getByText("★ 4.0 from 1 review")).toBeVisible();
       expect(await prisma.review.count({ where: { productId: product.id, userId: customerA.id } })).toBe(1);
 
       await pageB.goto(`/products/${productSlug}`);
@@ -140,7 +140,7 @@ test("Phase 5B wishlist, reviews, moderation, privacy, and live dashboard", asyn
         await pageA.goto(`/products/${productSlug}`);
         await expectNoPageOverflow(pageA);
         await expect(pageA.getByRole("heading", { name: "Reviews" })).toBeVisible();
-        await expect(pageA.getByText("4.0 ★ · 1 review")).toBeVisible();
+        await expect(pageA.getByText("★ 4.0 from 1 review")).toBeVisible();
         await expect(pageA.getByText("Verified Purchase")).toBeVisible();
         await expect(pageA.getByRole("article").getByText(longReview)).toBeVisible();
         await expect(pageA.getByLabel("4 out of 5 stars")).toBeVisible();

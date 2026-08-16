@@ -30,8 +30,19 @@ PostgreSQL must be running and the ignored local `.env` file must remain configu
 
 No credentials are stored in `run-local.bat`, `stop-local.bat`, or this document.
 
-## Command distinction
+## SAFE WORKFLOW RULES (CRITICAL)
 
-- **Normal daily development:** double-click `run-local.bat` (uses `npm run dev`, port 3000)
-- **Production verification:** `npm run build` then `npm run start`
-- **E2E verification:** `npm run test:e2e`
+> [!WARNING]
+> NEVER run `next dev` and `next build` (or `next start`) concurrently in the same project directory. This causes concurrent writes to the `.next` directory and will result in corrupted build artifacts (e.g., missing vendor chunks).
+
+Follow these distinct workflows:
+
+**DEV WORK:**
+- Use `run-local.bat` or `npm run dev`
+
+**E2E / PRODUCTION VERIFICATION:**
+1. **Stop dev server first** (use `stop-local.bat` or `Ctrl+C`).
+2. Ensure ports `3000` and `3110` are free.
+3. Delete `.next` directory if transitioning from a long or stale dev session.
+4. Run `npm run build`.
+5. Run `npm run test:e2e` (or `npm start`).

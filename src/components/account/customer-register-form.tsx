@@ -46,8 +46,7 @@ export function CustomerRegisterForm({ defaultCallbackUrl }: { defaultCallbackUr
 
     await signIn("credentials", { email, password, callbackUrl: defaultCallbackUrl, redirect: false });
     setPending(false);
-    // Hard navigation so the session cookie is applied by the server on the next request.
-    window.location.assign(defaultCallbackUrl);
+    window.location.href = defaultCallbackUrl;
   }
 
   return (

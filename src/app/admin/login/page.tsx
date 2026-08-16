@@ -30,7 +30,8 @@ export default function AdminLoginPage() {
       return;
     }
 
-    window.location.assign(result.url ?? "/admin");
+    // Hard navigation so the session cookie is applied and URL updates reliably.
+    window.location.href = "/admin";
   }
 
   return <main className="grid min-h-screen place-items-center p-4"><form action={submit} className="w-full max-w-sm rounded-lg border bg-card p-6 shadow-sm"><p className="text-sm font-medium text-muted-foreground">NORVA / ADMIN</p><h1 className="mt-2 text-2xl font-semibold">Sign in</h1><p className="mt-2 text-sm text-muted-foreground">Use your authorized administrator account.</p><label className="mt-6 block text-sm font-medium" htmlFor="email">Email</label><input required id="email" name="email" type="email" autoComplete="email" className="mt-1 h-10 w-full rounded-md border bg-background px-3"/><label className="mt-4 block text-sm font-medium" htmlFor="password">Password</label><input required id="password" name="password" type="password" minLength={8} autoComplete="current-password" className="mt-1 h-10 w-full rounded-md border bg-background px-3"/>{error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}<Button type="submit" className="mt-6 w-full" disabled={pending}>{pending ? "Signing in…" : "Sign in"}</Button></form></main>;
