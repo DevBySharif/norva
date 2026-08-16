@@ -29,3 +29,5 @@ id_ed25519
 *.session
 *.cookie
 cookies.txt
+
+.dev-pid
